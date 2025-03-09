@@ -3,6 +3,8 @@ import { AppDataSource } from "../config/database";
 import { User } from "../models/User";
 import { AppError } from "../middleware/errorHandler";
 import validator from "validator";
+import fs from "fs";
+import path from "path";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -198,7 +200,14 @@ export const updateMe = async (
     }
 
     if (file) {
-      user.avatar = `/uploads/${file.filename}`; // Store relative path
+      // Delete old avatar if it exists
+      if (user.avatar) {
+        const oldAvatarPath = path.join(__dirname, "..", "..", user.avatar); // Resolve full path
+        if (fs.existsSync(oldAvatarPath)) {
+          fs.unlinkSync(oldAvatarPath); // Remove old file
+        }
+      }
+      user.avatar = `/uploads/${file.filename}`; // Set new avatar path
     }
 
     const updatedUser = await userRepository.save(user);
