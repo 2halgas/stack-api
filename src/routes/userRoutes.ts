@@ -6,6 +6,7 @@ import {
   updateUser,
   deleteUser,
   getMe,
+  updateMe, // Add this
 } from "../controllers/userController";
 import { restrictTo } from "../middleware/auth";
 import { UserRole } from "../models/User";
@@ -45,6 +46,50 @@ const router = Router();
  *         description: Bad request
  */
 router.route("/").get(getUsers).post(createUser);
+
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user's profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *   patch:
+ *     summary: Update current user's profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       400:
+ *         description: Bad request (e.g., email already in use)
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.get("/me", protect, getMe);
+router.patch("/me", protect, updateMe);
 
 /**
  * @swagger
@@ -112,23 +157,5 @@ router
   .get(getUser)
   .patch(updateUser)
   .delete(restrictTo(UserRole.ADMIN), deleteUser);
-
-/**
- * @swagger
- * /users/me:
- *   get:
- *     summary: Get current user's profile
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User profile
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: User not found
- */
-router.get("/me", protect, getMe);
 
 export default router;

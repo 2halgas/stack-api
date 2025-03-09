@@ -13,7 +13,8 @@ import {
 import { sendResetEmail } from "../utils/email";
 import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-import { MoreThan } from "typeorm"; // Add this import
+import { MoreThan } from "typeorm";
+import validator from "validator";
 
 const userRepository = AppDataSource.getRepository(User);
 const resetTokenRepository = AppDataSource.getRepository(ResetToken);
@@ -27,6 +28,10 @@ export const signup = async (
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
       throw new AppError("Please provide name, email, and password", 400);
+    }
+
+    if (!validator.isEmail(email)) {
+      throw new AppError("Please provide a valid email address", 400);
     }
 
     const existingUser = await userRepository.findOne({ where: { email } });
