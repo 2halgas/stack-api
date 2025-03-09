@@ -124,3 +124,28 @@ export const refreshToken = async (
     next(err);
   }
 };
+
+export const getMe = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req as any).user.id; // Get ID from JWT
+    const user = await userRepository.findOne({
+      where: { id: userId },
+      select: ["id", "name", "email", "role", "createdAt"], // Exclude sensitive fields like password
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
