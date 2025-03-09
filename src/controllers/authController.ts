@@ -2,7 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/database";
 import { User } from "../models/User";
 import { AppError } from "../middleware/errorHandler";
-import { comparePassword, generateToken } from "../utils/auth";
+import {
+  comparePassword,
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+  compareRefreshToken,
+} from "../utils/auth";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -23,9 +29,11 @@ export const signup = async (
     }
 
     const user = userRepository.create({ name, email, password });
+    const refreshToken = generateRefreshToken(user.id);
+    user.refreshToken = refreshToken;
     await userRepository.save(user);
 
-    const token = generateToken(user.id, user.role);
+    const accessToken = generateAccessToken(user.id, user.role);
 
     res.status(201).json({
       status: "success",
@@ -35,7 +43,8 @@ export const signup = async (
         email: user.email,
         role: user.role,
       },
-      token,
+      accessToken,
+      refreshToken,
     });
   } catch (err) {
     next(err);
@@ -58,7 +67,10 @@ export const login = async (
       throw new AppError("Incorrect email or password", 401);
     }
 
-    const token = generateToken(user.id, user.role);
+    const accessToken = generateAccessToken(user.id, user.role);
+    const refreshToken = generateRefreshToken(user.id);
+    user.refreshToken = refreshToken;
+    await userRepository.save(user);
 
     res.status(200).json({
       status: "success",
@@ -68,7 +80,45 @@ export const login = async (
         email: user.email,
         role: user.role,
       },
-      token,
+      accessToken,
+      refreshToken,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      throw new AppError("Refresh token required", 400);
+    }
+
+    const decoded = verifyRefreshToken(refreshToken);
+    const user = await userRepository.findOne({ where: { id: decoded.id } });
+
+    if (
+      !user ||
+      !user.refreshToken ||
+      !(await compareRefreshToken(refreshToken, user.refreshToken))
+    ) {
+      throw new AppError("Invalid refresh token", 401);
+    }
+
+    const newAccessToken = generateAccessToken(user.id, user.role);
+    const newRefreshToken = generateRefreshToken(user.id);
+    user.refreshToken = newRefreshToken;
+    await userRepository.save(user);
+
+    res.status(200).json({
+      status: "success",
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
     });
   } catch (err) {
     next(err);

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/database";
-import { User, UserRole } from "../models/User";
+import { User } from "../models/User";
 import { AppError } from "../middleware/errorHandler";
 
 const userRepository = AppDataSource.getRepository(User);
@@ -12,7 +12,7 @@ export const getUsers = async (
 ) => {
   try {
     const users = await userRepository.find({
-      select: ["id", "name", "email", "role", "createdAt"],
+      select: ["id", "name", "email", "createdAt"],
     });
     res.json({ status: "success", data: users });
   } catch (err) {
@@ -27,8 +27,8 @@ export const getUser = async (
 ) => {
   try {
     const user = await userRepository.findOne({
-      where: { id: parseInt(req.params.id) },
-      select: ["id", "name", "email", "role", "createdAt"],
+      where: { id: req.params.id }, // No parseInt needed
+      select: ["id", "name", "email", "createdAt"],
     });
     if (!user) {
       throw new AppError("User not found", 404);
@@ -50,17 +50,7 @@ export const createUser = async (
       throw new AppError("Please provide name, email and password", 400);
     }
 
-    const existingUser = await userRepository.findOne({ where: { email } });
-    if (existingUser) {
-      throw new AppError("Email already in use", 400);
-    }
-
-    const user = userRepository.create({
-      name,
-      email,
-      password,
-      role: UserRole.USER,
-    });
+    const user = userRepository.create({ name, email, password });
     await userRepository.save(user);
 
     res.status(201).json({
@@ -69,7 +59,6 @@ export const createUser = async (
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
       },
     });
   } catch (err) {
@@ -84,7 +73,7 @@ export const updateUser = async (
 ) => {
   try {
     const user = await userRepository.findOne({
-      where: { id: parseInt(req.params.id) },
+      where: { id: req.params.id }, // No parseInt needed
     });
 
     if (!user) {
@@ -100,7 +89,6 @@ export const updateUser = async (
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
-        role: updatedUser.role,
       },
     });
   } catch (err) {
@@ -114,7 +102,7 @@ export const deleteUser = async (
   next: NextFunction
 ) => {
   try {
-    const result = await userRepository.delete(req.params.id);
+    const result = await userRepository.delete(req.params.id); // No parseInt needed
 
     if (result.affected === 0) {
       throw new AppError("User not found", 404);

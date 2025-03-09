@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../utils/auth";
+import { verifyAccessToken } from "../utils/auth"; // Updated import
 import { AppError } from "./errorHandler";
 import { UserRole } from "../models/User";
 
@@ -11,7 +11,7 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    const decoded = verifyToken(token);
+    const decoded = verifyAccessToken(token);
     (req as any).user = decoded; // Add user info to request
     next();
   } catch (err) {

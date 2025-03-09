@@ -8,17 +8,17 @@ import {
   BeforeUpdate,
 } from "typeorm";
 import * as bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
 
 export enum UserRole {
   USER = "user",
   ADMIN = "admin",
-  MODERATOR = "moderator",
 }
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn("uuid")
-  id!: number;
+  @PrimaryGeneratedColumn("uuid") // Change to UUID
+  id!: string; // Change type to string
 
   @Column()
   name!: string;
@@ -32,9 +32,12 @@ export class User {
   @Column({
     type: "enum",
     enum: UserRole,
-    default: UserRole.USER, // Default to "user"
+    default: UserRole.USER,
   })
-  role!: UserRole; // Use the enum type here
+  role!: UserRole;
+
+  @Column({ nullable: true })
+  refreshToken!: string;
 
   @CreateDateColumn()
   createdAt!: Date;
@@ -47,6 +50,21 @@ export class User {
   async hashPassword() {
     if (this.password) {
       this.password = await bcrypt.hash(this.password, 10);
+    }
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  async hashRefreshToken() {
+    if (this.refreshToken) {
+      this.refreshToken = await bcrypt.hash(this.refreshToken, 10);
+    }
+  }
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      this.id = uuidv4(); // Generate UUID if not provided
     }
   }
 }
