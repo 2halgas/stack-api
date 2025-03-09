@@ -39,7 +39,7 @@ export class User {
   @Column({ nullable: true })
   refreshToken!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "text", nullable: true })
   avatar!: string | null;
 
   @CreateDateColumn()

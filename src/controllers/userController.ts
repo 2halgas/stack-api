@@ -198,16 +198,20 @@ export const updateMe = async (
     if (name) {
       user.name = name;
     }
-
     if (file) {
-      // Delete old avatar if it exists
       if (user.avatar) {
-        const oldAvatarPath = path.join(__dirname, "..", "..", user.avatar); // Resolve full path
+        const oldAvatarPath = path.join(
+          __dirname,
+          "..",
+          "..",
+          "uploads",
+          path.basename(user.avatar)
+        ); // stack-api/uploads/
         if (fs.existsSync(oldAvatarPath)) {
-          fs.unlinkSync(oldAvatarPath); // Remove old file
+          fs.unlinkSync(oldAvatarPath);
         }
       }
-      user.avatar = `/uploads/${file.filename}`; // Set new avatar path
+      user.avatar = `/uploads/${file.filename}`;
     }
 
     const updatedUser = await userRepository.save(user);

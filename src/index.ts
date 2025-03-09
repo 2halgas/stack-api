@@ -47,37 +47,7 @@ app.use(
     { stream: accessLogStream }
   )
 );
-
-const uploadDirectory = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDirectory)) {
-  fs.mkdirSync(uploadDirectory);
-}
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDirectory);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `avatar-${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png/;
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = filetypes.test(file.mimetype);
-    if (extname && mimetype) {
-      return cb(null, true);
-    }
-    cb(new Error("Only JPEG/JPG/PNG images are allowed"));
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-});
-
-app.use("/uploads", express.static(uploadDirectory));
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -126,4 +96,3 @@ AppDataSource.initialize()
     console.error("Error connecting to database:", error);
     process.exit(1);
   });
-export { upload };

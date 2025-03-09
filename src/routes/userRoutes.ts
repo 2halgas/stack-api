@@ -6,12 +6,12 @@ import {
   updateUser,
   deleteUser,
   getMe,
-  updateMe, // Add this
+  updateMe,
 } from "../controllers/userController";
 import { restrictTo } from "../middleware/auth";
 import { UserRole } from "../models/User";
 import { protect } from "../middleware/auth";
-import { upload } from "..";
+import { upload } from "../config/multer";
 
 const router = Router();
 
