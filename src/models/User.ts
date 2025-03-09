@@ -48,7 +48,7 @@ export class User {
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    if (this.password) {
+    if (this.password && !this.password.startsWith("$2a$")) {
       this.password = await bcrypt.hash(this.password, 10);
     }
   }
@@ -56,7 +56,8 @@ export class User {
   @BeforeInsert()
   @BeforeUpdate()
   async hashRefreshToken() {
-    if (this.refreshToken) {
+    if (this.refreshToken && !this.refreshToken.startsWith("$2a$")) {
+      // Check if already hashed
       this.refreshToken = await bcrypt.hash(this.refreshToken, 10);
     }
   }

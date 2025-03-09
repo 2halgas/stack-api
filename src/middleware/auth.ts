@@ -3,6 +3,15 @@ import { verifyAccessToken } from "../utils/auth";
 import { AppError } from "./errorHandler";
 import { UserRole } from "../models/User";
 
+import * as bcrypt from "bcryptjs";
+
+export const comparePassword = async (
+  password: string,
+  hashedPassword: string
+): Promise<boolean> => {
+  return bcrypt.compare(password, hashedPassword);
+};
+
 export const protect = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(" ")[1]; // Expecting "Bearer <token>"
 

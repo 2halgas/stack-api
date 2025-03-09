@@ -61,7 +61,6 @@ export const signup = async (
     next(err);
   }
 };
-
 export const login = async (
   req: Request,
   res: Response,
@@ -74,7 +73,12 @@ export const login = async (
     }
 
     const user = await userRepository.findOne({ where: { email } });
-    if (!user || !(await comparePassword(password, user.password))) {
+    if (!user) {
+      throw new AppError("Incorrect email or password", 401);
+    }
+
+    const passwordMatch = await comparePassword(password, user.password);
+    if (!passwordMatch) {
       throw new AppError("Incorrect email or password", 401);
     }
 

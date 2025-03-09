@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import express from "express";
+import express, { Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -13,7 +13,7 @@ import { swaggerSpec } from "./config/swagger";
 import morgan from "morgan";
 import fs from "fs";
 import path from "path";
-import { RotatingFileStream, createStream } from "rotating-file-stream";
+import { createStream } from "rotating-file-stream";
 
 dotenv.config();
 
@@ -24,12 +24,11 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "10kb" }));
 
-// Console logging (dev mode)
+// Morgan setup
 if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
+  app.use(morgan("dev")); // Console logging in dev mode
 }
 
-// File logging
 const logDirectory = path.join(__dirname, "logs");
 if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory);
@@ -40,6 +39,7 @@ const accessLogStream = createStream("access.log", {
   compress: "gzip", // Compress old logs
 });
 
+// File logging
 app.use(
   morgan(
     ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"',
@@ -53,13 +53,6 @@ const apiLimiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message:
-    "Too many login attempts from this IP, please try again after 15 minutes.",
-});
-
 app.use("/api/v1", apiLimiter);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
@@ -68,9 +61,26 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(errorHandler);
 
+// Cleanup logs older than 7 days
+const cleanupOldLogs = () => {
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const logFiles = fs.readdirSync(logDirectory);
+  logFiles.forEach((file) => {
+    const filePath = path.join(logDirectory, file);
+    const stats = fs.statSync(filePath);
+    if (stats.mtime < oneWeekAgo) {
+      fs.unlinkSync(filePath); // Delete files older than 7 days
+    }
+  });
+};
+
 AppDataSource.initialize()
   .then(() => {
     console.log("Database connected successfully.");
+    cleanupOldLogs(); // Initial cleanup
+    setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000); // Daily cleanup
+
     app.listen(port, () => {
       console.log(
         `Server running on port ${port} in ${process.env.NODE_ENV} mode`
