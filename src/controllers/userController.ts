@@ -27,7 +27,7 @@ export const getUser = async (
 ) => {
   try {
     const user = await userRepository.findOne({
-      where: { id: req.params.id }, // No parseInt needed
+      where: { id: req.params.id },
       select: ["id", "name", "email", "createdAt"],
     });
     if (!user) {
@@ -73,7 +73,7 @@ export const updateUser = async (
 ) => {
   try {
     const user = await userRepository.findOne({
-      where: { id: req.params.id }, // No parseInt needed
+      where: { id: req.params.id },
     });
 
     if (!user) {
@@ -102,7 +102,7 @@ export const deleteUser = async (
   next: NextFunction
 ) => {
   try {
-    const result = await userRepository.delete(req.params.id); // No parseInt needed
+    const result = await userRepository.delete(req.params.id);
 
     if (result.affected === 0) {
       throw new AppError("User not found", 404);
@@ -111,6 +111,31 @@ export const deleteUser = async (
     res.status(204).json({
       status: "success",
       data: null,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMe = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req as any).user.id; // Get ID from JWT
+    const user = await userRepository.findOne({
+      where: { id: userId },
+      select: ["id", "name", "email", "role", "createdAt"],
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: user,
     });
   } catch (err) {
     next(err);

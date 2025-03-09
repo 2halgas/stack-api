@@ -125,25 +125,26 @@ export const refreshToken = async (
   }
 };
 
-export const getMe = async (
+export const logout = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const userId = (req as any).user.id; // Get ID from JWT
-    const user = await userRepository.findOne({
-      where: { id: userId },
-      select: ["id", "name", "email", "role", "createdAt"], // Exclude sensitive fields like password
-    });
+    const user = await userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
+    // Clear the refresh token
+    user.refreshToken = null as any; // Set to null to invalidate
+    await userRepository.save(user);
+
     res.status(200).json({
       status: "success",
-      data: user,
+      message: "Logged out successfully",
     });
   } catch (err) {
     next(err);
