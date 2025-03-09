@@ -163,7 +163,6 @@ export const getMe = async (
     next(err);
   }
 };
-
 export const updateMe = async (
   req: Request,
   res: Response,
@@ -172,8 +171,8 @@ export const updateMe = async (
   try {
     const userId = (req as any).user.id;
     const { name, email } = req.body;
+    const file = (req as any).file; // Multer adds file to req
 
-    // Fetch the current user
     const user = await userRepository.findOne({
       where: { id: userId },
     });
@@ -181,8 +180,10 @@ export const updateMe = async (
       throw new AppError("User not found", 404);
     }
 
-    // Check if email is being updated and already exists for another user
     if (email && email !== user.email) {
+      if (!validator.isEmail(email)) {
+        throw new AppError("Please provide a valid email address", 400);
+      }
       const existingUser = await userRepository.findOne({
         where: { email },
       });
@@ -192,12 +193,14 @@ export const updateMe = async (
       user.email = email;
     }
 
-    // Update name if provided
     if (name) {
       user.name = name;
     }
 
-    // Save changes
+    if (file) {
+      user.avatar = `/uploads/${file.filename}`; // Store relative path
+    }
+
     const updatedUser = await userRepository.save(user);
 
     res.status(200).json({
@@ -206,6 +209,7 @@ export const updateMe = async (
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
+        avatar: updatedUser.avatar,
         role: updatedUser.role,
       },
     });

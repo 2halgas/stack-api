@@ -11,6 +11,7 @@ import {
 import { restrictTo } from "../middleware/auth";
 import { UserRole } from "../models/User";
 import { protect } from "../middleware/auth";
+import { upload } from "..";
 
 const router = Router();
 
@@ -46,7 +47,6 @@ const router = Router();
  *         description: Bad request
  */
 router.route("/").get(getUsers).post(createUser);
-
 /**
  * @swagger
  * /users/me:
@@ -68,9 +68,8 @@ router.route("/").get(getUsers).post(createUser);
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -78,6 +77,9 @@ router.route("/").get(getUsers).post(createUser);
  *                 type: string
  *               email:
  *                 type: string
+ *               avatar:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Profile updated
@@ -89,8 +91,7 @@ router.route("/").get(getUsers).post(createUser);
  *         description: User not found
  */
 router.get("/me", protect, getMe);
-router.patch("/me", protect, updateMe);
-
+router.patch("/me", protect, upload.single("avatar"), updateMe);
 /**
  * @swagger
  * /users/{id}:

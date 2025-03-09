@@ -39,6 +39,9 @@ export class User {
   @Column({ nullable: true })
   refreshToken!: string;
 
+  @Column({ nullable: true })
+  avatar!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 
@@ -57,7 +60,6 @@ export class User {
   @BeforeUpdate()
   async hashRefreshToken() {
     if (this.refreshToken && !this.refreshToken.startsWith("$2a$")) {
-      // Check if already hashed
       this.refreshToken = await bcrypt.hash(this.refreshToken, 10);
     }
   }
