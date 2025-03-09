@@ -4,7 +4,7 @@ import { AppError } from "../middleware/errorHandler";
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || "smtp.gmail.com",
   port: parseInt(process.env.EMAIL_PORT || "587"),
-  secure: false, // Use TLS
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendResetEmail = async (to: string, token: string) => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
   try {
     await transporter.sendMail({
       from: `"Your App" <${process.env.EMAIL_USER}>`,
@@ -25,7 +26,6 @@ export const sendResetEmail = async (to: string, token: string) => {
       `,
     });
   } catch (err) {
-    console.error(err);
     throw new AppError("Failed to send reset email", 500);
   }
 };

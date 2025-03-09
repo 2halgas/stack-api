@@ -13,13 +13,13 @@ export class ResetToken {
   id!: string;
 
   @Column()
-  token!: string; // Hashed token
+  token!: string;
 
   @ManyToOne(() => User, (user) => user.id)
   user!: User;
 
   @Column()
-  expiresAt!: Date; // Expiration date
+  expiresAt!: Date;
 
   @CreateDateColumn()
   createdAt!: Date;

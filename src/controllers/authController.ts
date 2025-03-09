@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppDataSource } from "../config/database";
 import { User } from "../models/User";
+import { ResetToken } from "../models/ResetToken";
 import { AppError } from "../middleware/errorHandler";
 import {
   comparePassword,
@@ -9,11 +10,10 @@ import {
   verifyRefreshToken,
   compareRefreshToken,
 } from "../utils/auth";
-import { ResetToken } from "../models/ResetToken";
+import { sendResetEmail } from "../utils/email";
 import * as bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-import { sendResetEmail } from "../utils/email";
-import { MoreThan } from "typeorm";
+import { MoreThan } from "typeorm"; // Add this import
 
 const userRepository = AppDataSource.getRepository(User);
 const resetTokenRepository = AppDataSource.getRepository(ResetToken);
@@ -137,15 +137,14 @@ export const logout = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).user.id; // Get ID from JWT
+    const userId = (req as any).user.id;
     const user = await userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
       throw new AppError("User not found", 404);
     }
 
-    // Clear the refresh token
-    user.refreshToken = null as any; // Set to null to invalidate
+    user.refreshToken = null as any;
     await userRepository.save(user);
 
     res.status(200).json({
@@ -170,14 +169,12 @@ export const forgotPassword = async (
 
     const user = await userRepository.findOne({ where: { email } });
     if (!user) {
-      // Don’t reveal if email exists for security
       return res.status(200).json({
         status: "success",
         message: "If the email exists, a reset link has been sent",
       });
     }
 
-    // Generate reset token
     const token = uuidv4();
     const hashedToken = await bcrypt.hash(token, 10);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -189,7 +186,6 @@ export const forgotPassword = async (
     });
     await resetTokenRepository.save(resetToken);
 
-    // Send email with unhashed token
     await sendResetEmail(user.email, token);
 
     res.status(200).json({
@@ -214,7 +210,7 @@ export const resetPassword = async (
 
     const resetToken = await resetTokenRepository.findOne({
       relations: ["user"],
-      where: { expiresAt: MoreThan(new Date()) }, // Check if not expired
+      where: { expiresAt: MoreThan(new Date()) },
     });
 
     if (!resetToken || !(await bcrypt.compare(token, resetToken.token))) {
@@ -222,11 +218,10 @@ export const resetPassword = async (
     }
 
     const user = resetToken.user;
-    user.password = password; // Will be hashed by @BeforeUpdate
-    user.refreshToken = null as any; // Invalidate refresh token on reset
+    user.password = password;
+    user.refreshToken = null as any;
     await userRepository.save(user);
 
-    // Clean up used token
     await resetTokenRepository.delete(resetToken.id);
 
     res.status(200).json({

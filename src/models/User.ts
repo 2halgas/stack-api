@@ -17,8 +17,8 @@ export enum UserRole {
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn("uuid") // Change to UUID
-  id!: string; // Change type to string
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @Column()
   name!: string;
@@ -64,7 +64,7 @@ export class User {
   @BeforeInsert()
   generateId() {
     if (!this.id) {
-      this.id = uuidv4(); // Generate UUID if not provided
+      this.id = uuidv4();
     }
   }
 }
