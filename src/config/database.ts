@@ -1,6 +1,7 @@
 import { DataSource } from "typeorm";
 import { User } from "../models/User";
 import dotenv from "dotenv";
+import { ResetToken } from "../models/ResetToken";
 
 dotenv.config();
 
@@ -13,7 +14,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: process.env.NODE_ENV === "development", // Disable in production
   logging: process.env.NODE_ENV === "development",
-  entities: [User],
+  entities: [User, ResetToken],
   subscribers: [],
   migrations: [],
 });

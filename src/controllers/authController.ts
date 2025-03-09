@@ -9,8 +9,14 @@ import {
   verifyRefreshToken,
   compareRefreshToken,
 } from "../utils/auth";
+import { ResetToken } from "../models/ResetToken";
+import * as bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
+import { sendResetEmail } from "../utils/email";
+import { MoreThan } from "typeorm";
 
 const userRepository = AppDataSource.getRepository(User);
+const resetTokenRepository = AppDataSource.getRepository(ResetToken);
 
 export const signup = async (
   req: Request,
@@ -145,6 +151,87 @@ export const logout = async (
     res.status(200).json({
       status: "success",
       message: "Logged out successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const forgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      throw new AppError("Please provide an email", 400);
+    }
+
+    const user = await userRepository.findOne({ where: { email } });
+    if (!user) {
+      // Don’t reveal if email exists for security
+      return res.status(200).json({
+        status: "success",
+        message: "If the email exists, a reset link has been sent",
+      });
+    }
+
+    // Generate reset token
+    const token = uuidv4();
+    const hashedToken = await bcrypt.hash(token, 10);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    const resetToken = resetTokenRepository.create({
+      token: hashedToken,
+      user,
+      expiresAt,
+    });
+    await resetTokenRepository.save(resetToken);
+
+    // Send email with unhashed token
+    await sendResetEmail(user.email, token);
+
+    res.status(200).json({
+      status: "success",
+      message: "If the email exists, a reset link has been sent",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      throw new AppError("Please provide token and new password", 400);
+    }
+
+    const resetToken = await resetTokenRepository.findOne({
+      relations: ["user"],
+      where: { expiresAt: MoreThan(new Date()) }, // Check if not expired
+    });
+
+    if (!resetToken || !(await bcrypt.compare(token, resetToken.token))) {
+      throw new AppError("Invalid or expired reset token", 400);
+    }
+
+    const user = resetToken.user;
+    user.password = password; // Will be hashed by @BeforeUpdate
+    user.refreshToken = null as any; // Invalidate refresh token on reset
+    await userRepository.save(user);
+
+    // Clean up used token
+    await resetTokenRepository.delete(resetToken.id);
+
+    res.status(200).json({
+      status: "success",
+      message: "Password reset successfully",
     });
   } catch (err) {
     next(err);
