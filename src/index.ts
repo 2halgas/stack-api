@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import { AppDataSource } from "./config/database";
 import { errorHandler } from "./middleware/errorHandler";
 import userRoutes from "./routes/userRoutes";
+import authRoutes from "./routes/authRoutes";
+import { protect } from "./middleware/auth";
 
 dotenv.config();
 
@@ -18,7 +20,8 @@ app.use(cors());
 app.use(express.json({ limit: "10kb" }));
 
 // Routes
-app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/users", protect, userRoutes);
 
 // Global error handling
 app.use(errorHandler);
